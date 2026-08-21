@@ -49,12 +49,16 @@ export function inferPrecision(data: readonly NormalizedOHLC[]): number {
   if (data.length === 0) return 2;
   let observedPrecision = 0;
   for (const candle of data.slice(-100)) {
-    const text = candle.close.toFixed(8).replace(/0+$/, "");
-    observedPrecision = Math.max(observedPrecision, text.split(".")[1]?.length ?? 0);
+    for (const value of [candle.open, candle.high, candle.low, candle.close]) {
+      const text = value.toFixed(12).replace(/0+$/, "");
+      observedPrecision = Math.max(observedPrecision, text.split(".")[1]?.length ?? 0);
+    }
   }
   const magnitude = Math.abs(data[data.length - 1]!.close);
   if (magnitude >= 100) return 2;
   if (magnitude >= 1) return Math.min(4, Math.max(2, observedPrecision));
   if (magnitude >= 0.01) return Math.min(6, Math.max(4, observedPrecision));
-  return 8;
+  if (magnitude === 0) return Math.min(12, Math.max(8, observedPrecision));
+  const leadingFractionalZeros = Math.max(0, Math.ceil(-Math.log10(magnitude)) - 1);
+  return Math.min(12, Math.max(8, observedPrecision, leadingFractionalZeros + 4));
 }

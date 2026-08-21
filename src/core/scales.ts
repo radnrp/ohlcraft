@@ -40,3 +40,11 @@ export function niceStep(rawStep: number): number {
   const nice = normalized < 1.5 ? 1 : normalized < 3 ? 2 : normalized < 7 ? 5 : 10;
   return nice * magnitude;
 }
+
+export function paddedPriceRange(minPrice: number, maxPrice: number): { min: number; max: number } {
+  const rawRange = Math.max(0, maxPrice - minPrice);
+  const magnitude = Math.max(Math.abs(minPrice), Math.abs(maxPrice));
+  const flatRange = magnitude > 0 ? magnitude * 0.002 : 1;
+  const padding = Math.max(rawRange * 0.09, flatRange / 2, Number.EPSILON);
+  return { min: minPrice - padding, max: maxPrice + padding };
+}

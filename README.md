@@ -9,7 +9,7 @@ OHLCraft is a release-ready, canvas-based financial chart for React and Next.js.
 - Candles, hollow candles, Heikin-Ashi, OHLC bars, line, area, and baseline charts
 - Real OHLCV aggregation for Auto, 1m, 5m, 15m, 30m, 1H, 4H, 1D, and 1W timeframes
 - Hardware-friendly Canvas rendering with capped device-pixel ratio
-- Wheel zoom anchored under the pointer, drag-to-pan, fit-content, and realtime navigation
+- Wheel/pinch zoom anchored under the pointer, one-finger pan, fit-content, and realtime navigation
 - Crosshair, proximity-based magnetic OHLC snapping, responsive price/time scales, and volume
 - Trend line, directional arrow, infinite ray, horizontal/vertical line, rectangle, Fibonacci, range measurement, and long/short position tools
 - Draggable/wheel-zoomable price scale with detailed ticks and double-click auto reset
@@ -146,6 +146,7 @@ const png = chart.current?.exportImage();
 | `showDrawingHistoryControls` | `boolean` | `true` |
 | `activeTool` / `defaultTool` | `DrawingTool` | `crosshair` |
 | `showToolbar` / `showLegend` / `showVolume` | `boolean` | `true` |
+| `layout` | `auto \| compact \| full` | `auto` |
 | `minBarSpacing` / `maxBarSpacing` | `number` | `2` / `48` |
 | `magnet` | `boolean` | `true` |
 | `animate` / `animationDuration` | `boolean` / `number` | `true` / `520` |
@@ -155,6 +156,28 @@ All callback, theme, locale, event, and ref types are exported from the package 
 Two-point tools support both press-drag-release and click-first-point/click-second-point workflows. Press `Escape` to cancel a draft, and select an existing drawing to move it or edit an anchor.
 
 Timeframe aggregation expects the finest available source candles. For example, pass 1-minute candles to generate every built-in interval accurately. Selecting a timeframe finer than the source data cannot manufacture missing market detail.
+
+## Small screens and meme-token prices
+
+The default `layout="auto"` is driven by the chart container width, not the browser viewport. Narrow cards therefore get larger touch targets, a horizontally scrollable tool dock, a compact two-row OHLCV legend, fewer axis ticks, and smaller time-scale chrome. Pinch with two fingers to zoom around the gesture midpoint and drag with one finger to pan.
+
+The price scale also measures the formatted price length. Values such as `0.00000008720` receive enough room without taking an excessive share of a small chart. You can still force `layout="compact"` or `layout="full"`, or override `priceScaleWidth` and `timeScaleHeight` explicitly.
+
+```tsx
+<div className="min-w-0 h-[clamp(280px,70vw,420px)]">
+  <TradingChart
+    data={candles}
+    height="100%"
+    layout="auto"
+    defaultTimeframe="1m"
+    initialBarSpacing={7}
+    showVolume
+    watermark={`${symbol} · 1M`}
+  />
+</div>
+```
+
+For a detailed meme-coin chart, pass real OHLCV candles at the finest interval you need. A single current-price point can only render one bar; neither responsive layout nor timeframe aggregation can reconstruct missing high, low, volume, or intrabar history.
 
 Drag vertically or use the mouse wheel over the right price scale to inspect a tighter/wider price range. Double-click that scale or call `ref.current?.resetPriceScale()` to return to automatic scaling. Long/short drawings expose separate editable Entry, Target, and Stop anchors with exact prices, percentages, and risk/reward ratio.
 

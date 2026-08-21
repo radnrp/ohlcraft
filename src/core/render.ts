@@ -10,6 +10,7 @@ import { bollinger, closes, ema, sma, type IndicatorPoint } from "./indicators";
 import {
   indexToX,
   niceStep,
+  paddedPriceRange,
   priceToY,
   visibleIndexes,
   xToIndex,
@@ -53,6 +54,7 @@ export interface RenderOptions {
   animationProgress: number;
   priceScaleFactor: number;
   priceScaleOffset: number;
+  compact: boolean;
   backgroundImage?: HTMLImageElement | null;
 }
 
@@ -101,10 +103,11 @@ function drawGrid(
   last: number,
 ): void {
   const { theme, formatPrice, formatTimeline, data, height, width, timeScaleHeight } = options;
-  ctx.font = `${theme.axis.fontWeight} ${theme.axis.fontSize}px ${theme.fontFamily}`;
+  const axisFontSize = options.compact ? Math.min(theme.axis.fontSize, options.width <= 300 ? 9 : 10) : theme.axis.fontSize;
+  ctx.font = `${theme.axis.fontWeight} ${axisFontSize}px ${theme.fontFamily}`;
   ctx.textBaseline = "middle";
   ctx.lineWidth = 1;
-  const desiredTicks = Math.max(5, Math.floor(geometry.plotHeight / 46));
+  const desiredTicks = Math.max(options.compact ? 3 : 5, Math.floor(geometry.plotHeight / (options.compact ? 58 : 46)));
   const step = niceStep((geometry.maxPrice - geometry.minPrice) / desiredTicks);
   const firstPrice = Math.ceil(geometry.minPrice / step) * step;
   for (let price = firstPrice; price <= geometry.maxPrice + step * 0.01; price += step) {
@@ -137,7 +140,7 @@ function drawGrid(
     ctx.fillText(`MANUAL · ${(1 / options.priceScaleFactor).toFixed(2)}×`, geometry.plotWidth + 9, 14);
   }
 
-  ctx.font = `${theme.axis.fontWeight} ${theme.axis.fontSize}px ${theme.fontFamily}`;
+  ctx.font = `${theme.axis.fontWeight} ${axisFontSize}px ${theme.fontFamily}`;
   const visibleCount = Math.max(1, last - first + 1);
   const visibleDuration = Math.max(0, (data[last]?.time ?? 0) - (data[first]?.time ?? 0));
   const gridEvery = Math.max(1, Math.ceil(visibleCount / Math.max(2, Math.floor(geometry.plotWidth / 110))));
@@ -172,7 +175,7 @@ function drawGrid(
 
   ctx.fillStyle = theme.axis.text;
   ctx.font = `600 9px ${theme.fontFamily}`;
-  ctx.fillText(`${options.timeframe} · ${visibleCount} BARS`, 9, height - 8);
+  ctx.fillText(options.compact ? `${options.timeframe} · ${visibleCount}` : `${options.timeframe} · ${visibleCount} BARS`, 9, height - 8);
   ctx.textAlign = "right";
   ctx.fillText(options.timezone.toUpperCase(), geometry.plotWidth - 9, height - 8);
   ctx.textAlign = "left";
@@ -826,9 +829,9 @@ export function renderChart(ctx: CanvasRenderingContext2D, options: RenderOption
     minPrice = 0;
     maxPrice = 1;
   }
-  const padding = Math.max((maxPrice - minPrice) * 0.09, Math.abs(maxPrice) * 0.001, 0.01);
-  const automaticMin = minPrice - padding;
-  const automaticMax = maxPrice + padding;
+  const automaticRangeBounds = paddedPriceRange(minPrice, maxPrice);
+  const automaticMin = automaticRangeBounds.min;
+  const automaticMax = automaticRangeBounds.max;
   const automaticRange = automaticMax - automaticMin;
   const priceCenter = (automaticMin + automaticMax) / 2 + automaticRange * options.priceScaleOffset;
   const scaledRange = automaticRange * Math.max(0.04, Math.min(24, options.priceScaleFactor));

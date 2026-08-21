@@ -14,6 +14,7 @@ export type {
   ChartStrokeStyle,
   ChartLineCap,
   ChartLineJoin,
+  ChartLayout,
   GridTheme,
   SeriesTheme,
   VolumeTheme,

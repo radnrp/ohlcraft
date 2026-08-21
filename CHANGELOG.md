@@ -1,6 +1,9 @@
 # Changelog
 
-## Unreleased
+## 0.1.1 - 2026-08-21
+
+- Added container-driven compact and micro layouts, adaptive precision-aware price scales, compact detailed legends, larger touch controls, and two-finger pinch zoom for small charts.
+- Fixed automatic scaling and precision for sub-cent meme-token prices.
 
 - Added deep, typed visual themes for candlesticks, series, grids, axes, crosshair, volume, and watermark styling.
 - Added solid, gradient, image, and procedural texture backgrounds.

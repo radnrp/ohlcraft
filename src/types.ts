@@ -26,6 +26,9 @@ export type ChartType =
 
 export type ChartTimeframe = "auto" | "1m" | "5m" | "15m" | "30m" | "1h" | "4h" | "1d" | "1w";
 
+/** Auto follows the chart container, not the browser viewport. */
+export type ChartLayout = "auto" | "compact" | "full";
+
 export type DrawingTool =
   | "cursor"
   | "crosshair"
@@ -260,6 +263,8 @@ export interface TradingChartProps {
   showVolume?: boolean;
   showWatermark?: boolean;
   watermark?: string;
+  /** Force a layout or let the chart adapt to its measured container. */
+  layout?: ChartLayout;
   priceScaleWidth?: number;
   timeScaleHeight?: number;
   rightOffset?: number;

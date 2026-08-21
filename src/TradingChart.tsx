@@ -29,6 +29,7 @@ import {
 } from "./core/interactions";
 import { indexToX, xToIndex, yToPrice, type ChartGeometry } from "./core/scales";
 import { resolveTheme } from "./core/theme";
+import { resolveChartLayout } from "./core/layout";
 import { Toolbar } from "./Toolbar";
 import { DrawingSettings } from "./DrawingSettings";
 import { DrawingHistoryToolbar } from "./DrawingHistoryToolbar";
@@ -45,8 +46,6 @@ import type {
 } from "./types";
 import "./styles.css";
 
-const DEFAULT_PRICE_SCALE = 76;
-const DEFAULT_TIME_SCALE = 44;
 const DEFAULT_DRAWING_COLORS = ["#8b7cff", "#38bdf8", "#2dd4a8", "#f59e0b", "#ff5d7a", "#f8fafc", "#64748b"];
 
 function createId(): string {
@@ -140,8 +139,9 @@ export const TradingChart = forwardRef<TradingChartHandle, TradingChartProps>(fu
     showVolume = true,
     showWatermark = true,
     watermark = "TRADING CHART",
-    priceScaleWidth = DEFAULT_PRICE_SCALE,
-    timeScaleHeight = DEFAULT_TIME_SCALE,
+    layout = "auto",
+    priceScaleWidth: priceScaleWidthProp,
+    timeScaleHeight: timeScaleHeightProp,
     rightOffset: initialRightOffset = 5,
     minBarSpacing = 2,
     maxBarSpacing = 48,
@@ -190,6 +190,13 @@ export const TradingChart = forwardRef<TradingChartHandle, TradingChartProps>(fu
   const [, setHistoryVersion] = useState(0);
   const pendingDrawingRef = useRef<ChartDrawing | null>(null);
   const animationFrameRef = useRef<number | null>(null);
+  const activePointersRef = useRef(new Map<number, { x: number; y: number }>());
+  const pinchRef = useRef<{
+    distance: number;
+    spacing: number;
+    anchorIndex: number;
+    anchorX: number;
+  } | null>(null);
   const dragRef = useRef<
     | { mode: "pan"; x: number; y: number; rightOffset: number; priceOffset: number; moved: boolean }
     | { mode: "price-scale"; y: number; factor: number; offset: number }
@@ -237,6 +244,31 @@ export const TradingChart = forwardRef<TradingChartHandle, TradingChartProps>(fu
   const formatPrice = useMemo(() => createPriceFormatter(inferPrecision(displayedData), locale), [displayedData, locale]);
   const formatTime = useMemo(() => createTimeFormatter(locale), [locale]);
   const formatTimeline = useMemo(() => createTimelineFormatter(locale), [locale]);
+  const layoutMetrics = useMemo(() => {
+    const priceBounds = displayedData.reduce(
+      (bounds, item) => ({ min: Math.min(bounds.min, item.low), max: Math.max(bounds.max, item.high) }),
+      { min: Number.POSITIVE_INFINITY, max: Number.NEGATIVE_INFINITY },
+    );
+    const priceSamples = displayedData.length === 0
+      ? [formatPrice(0)]
+      : [
+          formatPrice(priceBounds.min),
+          formatPrice(priceBounds.max),
+          formatPrice(displayedData[displayedData.length - 1]!.close),
+        ];
+    return resolveChartLayout({
+      width: size.width,
+      height: size.height,
+      layout,
+      formattedPrices: priceSamples,
+      axisFontSize: theme.axis.fontSize,
+      priceScaleWidth: priceScaleWidthProp,
+      timeScaleHeight: timeScaleHeightProp,
+    });
+  }, [displayedData, formatPrice, layout, priceScaleWidthProp, size.height, size.width, theme.axis.fontSize, timeScaleHeightProp]);
+  const priceScaleWidth = layoutMetrics.priceScaleWidth;
+  const timeScaleHeight = layoutMetrics.timeScaleHeight;
+  const compact = layoutMetrics.mode !== "full";
 
   useEffect(() => {
     const source = theme.backgroundStyle.type === "image" ? theme.backgroundStyle.image : undefined;
@@ -471,6 +503,7 @@ export const TradingChart = forwardRef<TradingChartHandle, TradingChartProps>(fu
       priceScaleFactor,
       priceScaleOffset,
       backgroundImage,
+      compact,
     });
   }, [
     animationProgress,
@@ -498,6 +531,7 @@ export const TradingChart = forwardRef<TradingChartHandle, TradingChartProps>(fu
     size,
     theme,
     currentTimeframe,
+    compact,
     timeScaleHeight,
     watermark,
   ]);
@@ -550,6 +584,23 @@ export const TradingChart = forwardRef<TradingChartHandle, TradingChartProps>(fu
     const result = renderResultRef.current;
     if (!result || displayedData.length === 0) return;
     const rawPoint = eventPoint(event);
+    activePointersRef.current.set(event.pointerId, rawPoint);
+    if (event.pointerType === "touch" && activePointersRef.current.size === 2) {
+      const [first, second] = [...activePointersRef.current.values()];
+      if (first && second) {
+        const anchorX = (first.x + second.x) / 2;
+        pinchRef.current = {
+          distance: Math.max(1, Math.hypot(second.x - first.x, second.y - first.y)),
+          spacing: barSpacing,
+          anchorIndex: xToIndex(anchorX, result.geometry),
+          anchorX,
+        };
+        dragRef.current = null;
+        emitCrosshair(null);
+        event.currentTarget.setPointerCapture(event.pointerId);
+        return;
+      }
+    }
     if (rawPoint.x > result.geometry.plotWidth && rawPoint.y <= result.geometry.plotHeight) {
       event.currentTarget.setPointerCapture(event.pointerId);
       dragRef.current = {
@@ -657,6 +708,21 @@ export const TradingChart = forwardRef<TradingChartHandle, TradingChartProps>(fu
     const result = renderResultRef.current;
     if (!result) return;
     const rawPoint = eventPoint(event);
+    if (activePointersRef.current.has(event.pointerId)) activePointersRef.current.set(event.pointerId, rawPoint);
+    const pinch = pinchRef.current;
+    if (pinch && activePointersRef.current.size >= 2) {
+      const [first, second] = [...activePointersRef.current.values()];
+      if (first && second) {
+        const distance = Math.max(1, Math.hypot(second.x - first.x, second.y - first.y));
+        const nextSpacing = Math.max(minBarSpacing, Math.min(maxBarSpacing, pinch.spacing * distance / pinch.distance));
+        const nextOffset = (result.geometry.plotWidth - pinch.anchorX) / nextSpacing
+          - (displayedData.length - 1 - pinch.anchorIndex);
+        setBarSpacing(nextSpacing);
+        setRightOffset(nextOffset);
+        emitCrosshair(null);
+      }
+      return;
+    }
     setOverPriceScale(rawPoint.x > result.geometry.plotWidth && rawPoint.y <= result.geometry.plotHeight);
     setOverTimeScale(rawPoint.y > result.geometry.plotHeight && rawPoint.x <= result.geometry.plotWidth);
     const point = clampToPlot(rawPoint, result.geometry);
@@ -733,6 +799,8 @@ export const TradingChart = forwardRef<TradingChartHandle, TradingChartProps>(fu
   };
 
   const onPointerUp = (event: ReactPointerEvent<HTMLCanvasElement>) => {
+    activePointersRef.current.delete(event.pointerId);
+    if (activePointersRef.current.size < 2) pinchRef.current = null;
     const drag = dragRef.current;
     dragRef.current = null;
     if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
@@ -759,6 +827,8 @@ export const TradingChart = forwardRef<TradingChartHandle, TradingChartProps>(fu
   };
 
   const onPointerCancel = (event: ReactPointerEvent<HTMLCanvasElement>) => {
+    activePointersRef.current.delete(event.pointerId);
+    if (activePointersRef.current.size < 2) pinchRef.current = null;
     const drag = dragRef.current;
     dragRef.current = null;
     if (drag?.mode === "edit" && drag.moved) updateDrawings(cloneDrawings(drag.historySnapshot), false);
@@ -882,6 +952,18 @@ export const TradingChart = forwardRef<TradingChartHandle, TradingChartProps>(fu
     if (!crosshair || !renderResultRef.current || !displayedData.length) return displayedData[displayedData.length - 1];
     return displayedData[nearestDataIndex(xToIndex(crosshair.x, renderResultRef.current.geometry), displayedData.length)];
   }, [crosshair, displayedData]);
+  const legendIndex = legendCandle ? displayedData.indexOf(legendCandle) : -1;
+  const previousLegendCandle = legendIndex > 0 ? displayedData[legendIndex - 1] : undefined;
+  const candleChange = legendCandle && previousLegendCandle
+    ? legendCandle.close - previousLegendCandle.close
+    : legendCandle
+      ? legendCandle.close - legendCandle.open
+      : 0;
+  const candleChangeBase = previousLegendCandle?.close ?? legendCandle?.open ?? 0;
+  const candleChangePercent = candleChangeBase === 0 ? 0 : candleChange / candleChangeBase * 100;
+  const candleRangePercent = legendCandle && legendCandle.low !== 0
+    ? (legendCandle.high - legendCandle.low) / legendCandle.low * 100
+    : 0;
 
   const rootStyle = {
     ...style,
@@ -908,6 +990,7 @@ export const TradingChart = forwardRef<TradingChartHandle, TradingChartProps>(fu
       onKeyDown={onKeyDown}
       role="application"
       aria-label="Interactive financial chart"
+      data-layout={layoutMetrics.mode}
     >
       {showToolbar && (
         <Toolbar
@@ -946,14 +1029,15 @@ export const TradingChart = forwardRef<TradingChartHandle, TradingChartProps>(fu
       {showLegend && legendCandle && (
         <div className={`rtc-legend ${showToolbar ? "with-toolbar" : ""}`} aria-live="polite">
           <span className="rtc-legend-time">{formatTime(legendCandle.time)} · {timeframeLabel(currentTimeframe)}</span>
-          <span>O <b>{formatPrice(legendCandle.open)}</b></span>
-          <span>H <b>{formatPrice(legendCandle.high)}</b></span>
-          <span>L <b>{formatPrice(legendCandle.low)}</b></span>
-          <span>C <b className={legendCandle.close >= legendCandle.open ? "is-up" : "is-down"}>{formatPrice(legendCandle.close)}</b></span>
-          <span>Δ <b className={legendCandle.close >= legendCandle.open ? "is-up" : "is-down"}>
-            {legendCandle.close >= legendCandle.open ? "+" : ""}{formatPrice(legendCandle.close - legendCandle.open)} ({legendCandle.open === 0 ? "0.00" : (((legendCandle.close - legendCandle.open) / legendCandle.open) * 100).toFixed(2)}%)
+          <span className="rtc-legend-stat">O <b>{formatPrice(legendCandle.open)}</b></span>
+          <span className="rtc-legend-stat">H <b>{formatPrice(legendCandle.high)}</b></span>
+          <span className="rtc-legend-stat">L <b>{formatPrice(legendCandle.low)}</b></span>
+          <span className="rtc-legend-stat">C <b className={legendCandle.close >= legendCandle.open ? "is-up" : "is-down"}>{formatPrice(legendCandle.close)}</b></span>
+          <span className="rtc-legend-stat">Δ <b className={candleChange >= 0 ? "is-up" : "is-down"}>
+            {candleChange >= 0 ? "+" : ""}{formatPrice(candleChange)} ({candleChangePercent >= 0 ? "+" : ""}{candleChangePercent.toFixed(2)}%)
           </b></span>
-          {legendCandle.volume !== undefined && <span>V <b>{compactNumber(legendCandle.volume, locale?.locale)}</b></span>}
+          <span className="rtc-legend-stat">R <b>{candleRangePercent.toFixed(2)}%</b></span>
+          {legendCandle.volume !== undefined && <span className="rtc-legend-stat">V <b>{compactNumber(legendCandle.volume, locale?.locale)}</b></span>}
         </div>
       )}
       {activeTool !== "cursor" && activeTool !== "crosshair" && (

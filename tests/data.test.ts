@@ -30,5 +30,6 @@ describe("market data", () => {
   it("keeps useful price detail without exposing floating-point noise", () => {
     expect(inferPrecision(normalizeData([{ time: 1, open: 68_000, high: 68_002, low: 67_999, close: 68_001.123456 }]))).toBe(2);
     expect(inferPrecision(normalizeData([{ time: 1, open: 1, high: 2, low: 0.5, close: 1.2345 }]))).toBe(4);
+    expect(inferPrecision(normalizeData([{ time: 1, open: 0.00000087, high: 0.00000088, low: 0.00000086, close: 0.000000872 }]))).toBe(10);
   });
 });

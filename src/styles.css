@@ -9,8 +9,8 @@
   --rtc-up: #2dd4a8;
   --rtc-down: #ff5d7a;
   position: relative;
-  min-width: 240px;
-  min-height: 220px;
+  min-width: 0;
+  min-height: 180px;
   overflow: hidden;
   border: 1px solid var(--rtc-border);
   border-radius: 20px;
@@ -20,6 +20,7 @@
   font-family: var(--rtc-font);
   isolation: isolate;
   outline: none;
+  container-type: inline-size;
   -webkit-tap-highlight-color: transparent;
   animation: rtc-enter 480ms cubic-bezier(.2, .8, .2, 1) both;
 }
@@ -367,6 +368,88 @@
   .rtc-drawing-settings { gap: 2px; padding: 4px; overflow-x: auto; }
   .rtc-drawing-name, .rtc-drawing-palette { display: none; }
   .rtc-drawing-settings-grip { margin-left: 2px; }
+}
+
+/* Compactness follows the chart container, so a narrow card also works on a desktop viewport. */
+.rtc-root[data-layout="compact"],
+.rtc-root[data-layout="micro"] { border-radius: 14px; }
+
+.rtc-root[data-layout="compact"] .rtc-toolbar,
+.rtc-root[data-layout="micro"] .rtc-toolbar {
+  right: 6px;
+  bottom: calc(var(--rtc-time-scale-height, 36px) + 7px);
+  left: 6px;
+  justify-content: flex-start;
+  width: auto;
+  max-width: none;
+  min-height: 46px;
+  overflow-x: auto;
+  padding: 4px;
+  border-radius: 13px;
+  scrollbar-width: none;
+  transform: none;
+  animation-name: rtc-compact-dock-enter;
+}
+
+.rtc-root[data-layout="compact"] .rtc-toolbar::-webkit-scrollbar,
+.rtc-root[data-layout="micro"] .rtc-toolbar::-webkit-scrollbar { display: none; }
+.rtc-root[data-layout="compact"] .rtc-tool-strip,
+.rtc-root[data-layout="micro"] .rtc-tool-strip { flex: 0 0 auto; overflow: visible; }
+.rtc-root[data-layout="compact"] .rtc-tool,
+.rtc-root[data-layout="micro"] .rtc-tool { flex-basis: 38px; width: 38px; height: 38px; }
+.rtc-root[data-layout="compact"] .rtc-chart-type,
+.rtc-root[data-layout="micro"] .rtc-chart-type { width: 104px; height: 38px; }
+.rtc-root[data-layout="compact"] .rtc-timeframe,
+.rtc-root[data-layout="micro"] .rtc-timeframe { width: 62px; height: 38px; }
+.rtc-root[data-layout="compact"] .rtc-divider,
+.rtc-root[data-layout="micro"] .rtc-divider { display: block; }
+
+.rtc-root[data-layout="compact"] .rtc-legend,
+.rtc-root[data-layout="micro"] .rtc-legend {
+  top: 7px;
+  right: 7px;
+  left: 7px;
+  gap: 3px 10px;
+  max-width: none;
+  padding: 7px 9px;
+  border-radius: 11px;
+  font-size: 10px;
+  line-height: 1.35;
+}
+.rtc-root[data-layout="compact"] .rtc-legend-time,
+.rtc-root[data-layout="micro"] .rtc-legend-time { flex: 1 0 100%; }
+.rtc-root[data-layout="compact"] .rtc-legend-stat,
+.rtc-root[data-layout="micro"] .rtc-legend-stat { white-space: nowrap; }
+.rtc-root[data-layout="micro"] .rtc-legend-stat:nth-of-type(2),
+.rtc-root[data-layout="micro"] .rtc-legend-stat:nth-of-type(3),
+.rtc-root[data-layout="micro"] .rtc-legend-stat:nth-of-type(4) { display: none; }
+
+.rtc-root[data-layout="compact"] .rtc-history-toolbar,
+.rtc-root[data-layout="micro"] .rtc-history-toolbar {
+  top: auto;
+  right: 7px;
+  bottom: calc(var(--rtc-time-scale-height, 36px) + 61px);
+}
+.rtc-root[data-layout="compact"] .rtc-history-toolbar + .rtc-legend,
+.rtc-root[data-layout="micro"] .rtc-history-toolbar + .rtc-legend { max-width: none; }
+.rtc-root[data-layout="compact"] .rtc-history-toolbar ~ .rtc-mode-chip,
+.rtc-root[data-layout="micro"] .rtc-history-toolbar ~ .rtc-mode-chip { top: auto; }
+.rtc-root[data-layout="compact"] .rtc-mode-chip,
+.rtc-root[data-layout="micro"] .rtc-mode-chip {
+  right: 8px;
+  bottom: calc(var(--rtc-time-scale-height, 36px) + 112px);
+}
+
+.rtc-root[data-layout="compact"] .rtc-drawing-settings,
+.rtc-root[data-layout="micro"] .rtc-drawing-settings { gap: 2px; padding: 4px; overflow-x: auto; }
+.rtc-root[data-layout="compact"] .rtc-drawing-name,
+.rtc-root[data-layout="compact"] .rtc-drawing-palette,
+.rtc-root[data-layout="micro"] .rtc-drawing-name,
+.rtc-root[data-layout="micro"] .rtc-drawing-palette { display: none; }
+
+@keyframes rtc-compact-dock-enter {
+  from { opacity: 0; transform: translateY(10px) scale(.97); }
+  to { opacity: 1; transform: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
