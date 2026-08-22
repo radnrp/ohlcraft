@@ -1,6 +1,6 @@
 {
   "name": "ohlcraft",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "A deeply customizable, canvas-based financial chart for React and Next.js.",
   "type": "module",
   "sideEffects": [

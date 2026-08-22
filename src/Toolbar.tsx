@@ -61,6 +61,7 @@ interface ToolbarProps {
   timeframes: readonly ChartTimeframe[];
   locale: ChartLocale | undefined;
   canDelete: boolean;
+  isFullscreen: boolean;
   onToolChange: (tool: DrawingTool) => void;
   onChartTypeChange: (type: ChartType) => void;
   onTimeframeChange: (timeframe: ChartTimeframe) => void;
@@ -69,7 +70,7 @@ interface ToolbarProps {
   onFullscreen: () => void;
 }
 
-export function Toolbar({ activeTool, chartType, timeframe, timeframes, locale, canDelete, onToolChange, onChartTypeChange, onTimeframeChange, onDelete, onReset, onFullscreen }: ToolbarProps) {
+export function Toolbar({ activeTool, chartType, timeframe, timeframes, locale, canDelete, isFullscreen, onToolChange, onChartTypeChange, onTimeframeChange, onDelete, onReset, onFullscreen }: ToolbarProps) {
   const labels = locale?.labels;
   return (
     <div className="rtc-toolbar" role="toolbar" aria-label="Chart tools">
@@ -97,7 +98,7 @@ export function Toolbar({ activeTool, chartType, timeframe, timeframes, locale, 
       <span className="rtc-divider" />
       <button type="button" className="rtc-tool" disabled={!canDelete} onClick={onDelete} aria-label={labels?.delete ?? "Delete selected drawing"} title={labels?.delete ?? "Delete selected drawing"}><ActionIcon type="delete" /></button>
       <button type="button" className="rtc-tool" onClick={onReset} aria-label={labels?.reset ?? "Fit content"} title={labels?.reset ?? "Fit content"}><ActionIcon type="reset" /></button>
-      <button type="button" className="rtc-tool" onClick={onFullscreen} aria-label={labels?.fullscreen ?? "Fullscreen"} title={labels?.fullscreen ?? "Fullscreen"}><ActionIcon type="fullscreen" /></button>
+      <button type="button" className="rtc-tool" onClick={onFullscreen} aria-pressed={isFullscreen} aria-label={labels?.fullscreen ?? "Fullscreen"} title={labels?.fullscreen ?? "Fullscreen"}><ActionIcon type="fullscreen" /></button>
     </div>
   );
 }

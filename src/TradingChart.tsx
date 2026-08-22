@@ -183,6 +183,7 @@ export const TradingChart = forwardRef<TradingChartHandle, TradingChartProps>(fu
   const [overTimeScale, setOverTimeScale] = useState(false);
   const [animationProgress, setAnimationProgress] = useState(animate ? 0 : 1);
   const [backgroundImage, setBackgroundImage] = useState<HTMLImageElement | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const renderResultRef = useRef<RenderResult | null>(null);
   const drawingsRef = useRef<readonly ChartDrawing[]>(drawings);
   const pastDrawingsRef = useRef<ChartDrawing[][]>([]);
@@ -439,6 +440,34 @@ export const TradingChart = forwardRef<TradingChartHandle, TradingChartProps>(fu
     observer.observe(root);
     return () => observer.disconnect();
   }, []);
+
+  useEffect(() => {
+    if (!isFullscreen) return;
+    const root = rootRef.current;
+    if (!root) return;
+    const ownerDocument = root.ownerDocument;
+    const body = ownerDocument.body;
+    const documentElement = ownerDocument.documentElement;
+    const previousBodyOverflow = body.style.overflow;
+    const previousBodyOverscrollBehavior = body.style.overscrollBehavior;
+    const previousDocumentOverflow = documentElement.style.overflow;
+    body.style.overflow = "hidden";
+    body.style.overscrollBehavior = "none";
+    documentElement.style.overflow = "hidden";
+
+    const exitOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setIsFullscreen(false);
+    };
+    ownerDocument.addEventListener("keydown", exitOnEscape);
+    return () => {
+      ownerDocument.removeEventListener("keydown", exitOnEscape);
+      body.style.overflow = previousBodyOverflow;
+      body.style.overscrollBehavior = previousBodyOverscrollBehavior;
+      documentElement.style.overflow = previousDocumentOverflow;
+    };
+  }, [isFullscreen]);
+
+  const toggleFullscreen = useCallback(() => setIsFullscreen((current) => !current), []);
 
   useEffect(() => {
     if (animationFrameRef.current !== null) cancelAnimationFrame(animationFrameRef.current);
@@ -991,6 +1020,7 @@ export const TradingChart = forwardRef<TradingChartHandle, TradingChartProps>(fu
       role="application"
       aria-label="Interactive financial chart"
       data-layout={layoutMetrics.mode}
+      data-fullscreen={isFullscreen ? "in-app" : undefined}
     >
       {showToolbar && (
         <Toolbar
@@ -1000,17 +1030,13 @@ export const TradingChart = forwardRef<TradingChartHandle, TradingChartProps>(fu
           timeframes={timeframes}
           locale={locale}
           canDelete={Boolean(selectedDrawingId && !selectedDrawing?.locked)}
+          isFullscreen={isFullscreen}
           onToolChange={setTool}
           onChartTypeChange={setChartType}
           onTimeframeChange={setTimeframe}
           onDelete={deleteSelected}
           onReset={fitContent}
-          onFullscreen={() => {
-            const root = rootRef.current;
-            if (!root) return;
-            if (document.fullscreenElement) void document.exitFullscreen();
-            else void root.requestFullscreen();
-          }}
+          onFullscreen={toggleFullscreen}
         />
       )}
       {showDrawingHistoryControls && (

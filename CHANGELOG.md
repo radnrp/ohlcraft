@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.2 - 2026-08-22
+
+- Made chart fullscreen consistently fill the host app viewport across Telegram Mini Apps, iPhone, macOS, and desktop browsers.
+- Added Telegram stable-viewport sizing, background scroll locking, accessible fullscreen state, and Escape-to-exit behavior.
+
 ## 0.1.1 - 2026-08-21
 
 - Added container-driven compact and micro layouts, adaptive precision-aware price scales, compact detailed legends, larger touch controls, and two-finger pinch zoom for small charts.

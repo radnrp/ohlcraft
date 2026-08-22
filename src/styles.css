@@ -37,6 +37,23 @@
 
 .rtc-root:focus-visible { box-shadow: 0 0 0 3px color-mix(in srgb, var(--rtc-accent) 48%, transparent), 0 24px 70px rgb(0 0 0 / 24%); }
 
+.rtc-root[data-fullscreen="in-app"] {
+  width: 100vw !important;
+  width: 100dvw !important;
+  height: 100vh !important;
+  height: var(--tg-viewport-stable-height, 100dvh) !important;
+  min-height: 100vh;
+  min-height: var(--tg-viewport-stable-height, 100dvh);
+  border: 0;
+  border-radius: 0;
+  position: fixed !important;
+  z-index: 2147483647;
+  inset: 0 !important;
+  max-width: none !important;
+  max-height: none !important;
+  margin: 0 !important;
+}
+
 .rtc-canvas {
   position: absolute;
   inset: 0;
