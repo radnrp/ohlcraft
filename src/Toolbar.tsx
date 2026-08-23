@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useEffect, useId, useState, type ReactNode } from "react";
 import { timeframeLabel } from "./core/timeframes";
 import type { ChartLocale, ChartTimeframe, ChartType, DrawingTool } from "./types";
 
@@ -47,11 +47,21 @@ function ToolIcon({ tool }: { tool: DrawingTool }) {
   return <IconFrame><rect {...common} x="4" y="4" width="16" height="16" rx="5" /><path {...common} d={isLong ? "M8 15V9h3.5M8 15h4" : "M15.5 9H11a2 2 0 0 0 0 4h2a2 2 0 0 1 0 4H8.5"} /></IconFrame>;
 }
 
-function ActionIcon({ type }: { type: "delete" | "reset" | "fullscreen" }) {
+function ActionIcon({ type }: { type: "delete" | "reset" | "fullscreen" | "more" }) {
   const common = { fill: "none", stroke: "currentColor", strokeWidth: 1.7, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
   if (type === "delete") return <IconFrame><path {...common} d="M5 7h14M9 7V4h6v3M8 10v8M12 10v8M16 10v8M6.5 7l1 14h9l1-14" /></IconFrame>;
   if (type === "reset") return <IconFrame><path {...common} d="M5 8V4m0 0h4M5 4l3.2 3.2A7 7 0 1 1 5.6 14" /></IconFrame>;
-  return <IconFrame><path {...common} d="M9 4H4v5M15 4h5v5M9 20H4v-5M15 20h5v-5" /></IconFrame>;
+  if (type === "fullscreen") return <IconFrame><path {...common} d="M9 4H4v5M15 4h5v5M9 20H4v-5M15 20h5v-5" /></IconFrame>;
+  return <IconFrame><circle cx="5" cy="12" r="1.35" fill="currentColor" /><circle cx="12" cy="12" r="1.35" fill="currentColor" /><circle cx="19" cy="12" r="1.35" fill="currentColor" /></IconFrame>;
+}
+
+function ChartTypeIcon({ type }: { type: ChartType }) {
+  const common = { fill: "none", stroke: "currentColor", strokeWidth: 1.55, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
+  if (type === "line" || type === "area" || type === "baseline") {
+    return <IconFrame><path {...common} d="m3 16 5-6 4 3 8-8" />{type === "area" && <path d="m3 16 5-6 4 3 8-8v12H3Z" fill="currentColor" opacity=".15" />}</IconFrame>;
+  }
+  if (type === "bars") return <IconFrame><path {...common} d="M7 4v16M4 8h3M7 15h4M17 3v18M13 9h4M17 16h3" /></IconFrame>;
+  return <IconFrame><path {...common} d="M7 3v4M7 17v4M17 2v5M17 16v6" /><rect {...common} x="4" y="7" width="6" height="10" rx="1" /><rect {...common} x="14" y="7" width="6" height="9" rx="1" /></IconFrame>;
 }
 
 interface ToolbarProps {
@@ -72,33 +82,130 @@ interface ToolbarProps {
 
 export function Toolbar({ activeTool, chartType, timeframe, timeframes, locale, canDelete, isFullscreen, onToolChange, onChartTypeChange, onTimeframeChange, onDelete, onReset, onFullscreen }: ToolbarProps) {
   const labels = locale?.labels;
+  const [mobilePanel, setMobilePanel] = useState<"tools" | "chart" | "timeframe" | "more" | null>(null);
+  const panelId = useId();
+  const activeToolItem = toolItems.find((item) => item.tool === activeTool) ?? toolItems[0]!;
+  const activeChartType = chartTypes.find((item) => item.value === chartType) ?? chartTypes[0]!;
+
+  useEffect(() => {
+    if (!mobilePanel) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMobilePanel(null);
+    };
+    document.addEventListener("keydown", closeOnEscape);
+    return () => document.removeEventListener("keydown", closeOnEscape);
+  }, [mobilePanel]);
+
+  const togglePanel = (panel: NonNullable<typeof mobilePanel>) => {
+    setMobilePanel((current) => current === panel ? null : panel);
+  };
+
+  const chooseTool = (tool: DrawingTool) => {
+    onToolChange(tool);
+    setMobilePanel(null);
+  };
+
+  const chooseChartType = (type: ChartType) => {
+    onChartTypeChange(type);
+    setMobilePanel(null);
+  };
+
+  const chooseTimeframe = (nextTimeframe: ChartTimeframe) => {
+    onTimeframeChange(nextTimeframe);
+    setMobilePanel(null);
+  };
+
   return (
-    <div className="rtc-toolbar" role="toolbar" aria-label="Chart tools">
-      <label className="rtc-chart-type-wrap" title="Chart style">
-        <span className="rtc-style-swatch" aria-hidden="true" />
-        <span className="rtc-sr-only">Chart style</span>
-        <select className="rtc-chart-type" value={chartType} onChange={(event) => onChartTypeChange(event.target.value as ChartType)}>
-          {chartTypes.map((item) => <option key={item.value} value={item.value}>{labels?.[item.value] ?? item.title}</option>)}
-        </select>
-      </label>
-      <label className="rtc-timeframe-wrap" title="Timeframe">
-        <span className="rtc-sr-only">Timeframe</span>
-        <select className="rtc-timeframe" value={timeframe} onChange={(event) => onTimeframeChange(event.target.value as ChartTimeframe)}>
-          {timeframes.map((item) => <option key={item} value={item}>{timeframeLabel(item)}</option>)}
-        </select>
-      </label>
-      <span className="rtc-divider" />
-      <div className="rtc-tool-strip">
-        {toolItems.map((item) => (
-          <button key={item.tool} type="button" className={`rtc-tool ${activeTool === item.tool ? "is-active" : ""}`} aria-pressed={activeTool === item.tool} aria-label={labels?.[item.tool] ?? item.title} title={labels?.[item.tool] ?? item.title} onClick={() => onToolChange(item.tool)}>
-            <ToolIcon tool={item.tool} />
-          </button>
-        ))}
+    <div className={`rtc-toolbar ${mobilePanel ? "has-open-panel" : ""}`}>
+      <div className="rtc-desktop-toolbar-content" role="toolbar" aria-label="Chart tools">
+        <label className="rtc-chart-type-wrap" title="Chart style">
+          <span className="rtc-style-swatch" aria-hidden="true" />
+          <span className="rtc-sr-only">Chart style</span>
+          <select className="rtc-chart-type" value={chartType} onChange={(event) => onChartTypeChange(event.target.value as ChartType)}>
+            {chartTypes.map((item) => <option key={item.value} value={item.value}>{labels?.[item.value] ?? item.title}</option>)}
+          </select>
+        </label>
+        <label className="rtc-timeframe-wrap" title="Timeframe">
+          <span className="rtc-sr-only">Timeframe</span>
+          <select className="rtc-timeframe" value={timeframe} onChange={(event) => onTimeframeChange(event.target.value as ChartTimeframe)}>
+            {timeframes.map((item) => <option key={item} value={item}>{timeframeLabel(item)}</option>)}
+          </select>
+        </label>
+        <span className="rtc-divider" />
+        <div className="rtc-tool-strip">
+          {toolItems.map((item) => (
+            <button key={item.tool} type="button" className={`rtc-tool ${activeTool === item.tool ? "is-active" : ""}`} aria-pressed={activeTool === item.tool} aria-label={labels?.[item.tool] ?? item.title} title={labels?.[item.tool] ?? item.title} onClick={() => onToolChange(item.tool)}>
+              <ToolIcon tool={item.tool} />
+            </button>
+          ))}
+        </div>
+        <span className="rtc-divider" />
+        <button type="button" className="rtc-tool" disabled={!canDelete} onClick={onDelete} aria-label={labels?.delete ?? "Delete selected drawing"} title={labels?.delete ?? "Delete selected drawing"}><ActionIcon type="delete" /></button>
+        <button type="button" className="rtc-tool" onClick={onReset} aria-label={labels?.reset ?? "Fit content"} title={labels?.reset ?? "Fit content"}><ActionIcon type="reset" /></button>
+        <button type="button" className="rtc-tool" onClick={onFullscreen} aria-pressed={isFullscreen} aria-label={labels?.fullscreen ?? "Fullscreen"} title={labels?.fullscreen ?? "Fullscreen"}><ActionIcon type="fullscreen" /></button>
       </div>
-      <span className="rtc-divider" />
-      <button type="button" className="rtc-tool" disabled={!canDelete} onClick={onDelete} aria-label={labels?.delete ?? "Delete selected drawing"} title={labels?.delete ?? "Delete selected drawing"}><ActionIcon type="delete" /></button>
-      <button type="button" className="rtc-tool" onClick={onReset} aria-label={labels?.reset ?? "Fit content"} title={labels?.reset ?? "Fit content"}><ActionIcon type="reset" /></button>
-      <button type="button" className="rtc-tool" onClick={onFullscreen} aria-pressed={isFullscreen} aria-label={labels?.fullscreen ?? "Fullscreen"} title={labels?.fullscreen ?? "Fullscreen"}><ActionIcon type="fullscreen" /></button>
+
+      <div className="rtc-mobile-toolbar-content" role="toolbar" aria-label="Chart controls">
+        <button type="button" className={mobilePanel === "tools" ? "is-active" : ""} aria-controls={panelId} aria-expanded={mobilePanel === "tools"} onClick={() => togglePanel("tools")}>
+          <ToolIcon tool={activeTool} />
+          <span>{labels?.[activeTool] ?? activeToolItem.title}</span>
+        </button>
+        <button type="button" className={mobilePanel === "chart" ? "is-active" : ""} aria-controls={panelId} aria-expanded={mobilePanel === "chart"} onClick={() => togglePanel("chart")}>
+          <ChartTypeIcon type={chartType} />
+          <span>{labels?.[chartType] ?? activeChartType.title}</span>
+        </button>
+        <button type="button" className={mobilePanel === "timeframe" ? "is-active" : ""} aria-label={`Timeframe: ${timeframeLabel(timeframe)}`} aria-controls={panelId} aria-expanded={mobilePanel === "timeframe"} onClick={() => togglePanel("timeframe")}>
+          <strong>{timeframeLabel(timeframe)}</strong>
+          <span>Timeframe</span>
+        </button>
+        <button type="button" className={mobilePanel === "more" ? "is-active" : ""} aria-label="More chart actions" aria-controls={panelId} aria-expanded={mobilePanel === "more"} onClick={() => togglePanel("more")}>
+          <ActionIcon type="more" />
+          <span>More</span>
+        </button>
+      </div>
+
+      {mobilePanel && (
+        <div id={panelId} className="rtc-mobile-panel" role="group" aria-label={`${mobilePanel} options`}>
+          <div className="rtc-mobile-panel-head">
+            <strong>{mobilePanel === "tools" ? "Drawing tools" : mobilePanel === "chart" ? "Chart style" : mobilePanel === "timeframe" ? "Timeframe" : "Chart actions"}</strong>
+            <button type="button" onClick={() => setMobilePanel(null)} aria-label="Close options">×</button>
+          </div>
+          {mobilePanel === "tools" && (
+            <div className="rtc-mobile-option-grid rtc-mobile-tool-grid">
+              {toolItems.map((item) => (
+                <button key={item.tool} type="button" className={activeTool === item.tool ? "is-selected" : ""} aria-pressed={activeTool === item.tool} onClick={() => chooseTool(item.tool)}>
+                  <ToolIcon tool={item.tool} />
+                  <span>{labels?.[item.tool] ?? item.title}</span>
+                </button>
+              ))}
+            </div>
+          )}
+          {mobilePanel === "chart" && (
+            <div className="rtc-mobile-option-grid rtc-mobile-chart-grid">
+              {chartTypes.map((item) => (
+                <button key={item.value} type="button" className={chartType === item.value ? "is-selected" : ""} aria-pressed={chartType === item.value} onClick={() => chooseChartType(item.value)}>
+                  <ChartTypeIcon type={item.value} />
+                  <span>{labels?.[item.value] ?? item.title}</span>
+                </button>
+              ))}
+            </div>
+          )}
+          {mobilePanel === "timeframe" && (
+            <div className="rtc-mobile-option-grid rtc-mobile-timeframe-grid">
+              {timeframes.map((item) => (
+                <button key={item} type="button" className={timeframe === item ? "is-selected" : ""} aria-pressed={timeframe === item} onClick={() => chooseTimeframe(item)}>{timeframeLabel(item)}</button>
+              ))}
+            </div>
+          )}
+          {mobilePanel === "more" && (
+            <div className="rtc-mobile-option-grid rtc-mobile-action-grid">
+              <button type="button" disabled={!canDelete} onClick={() => { onDelete(); setMobilePanel(null); }}><ActionIcon type="delete" /><span>{labels?.delete ?? "Delete drawing"}</span></button>
+              <button type="button" onClick={() => { onReset(); setMobilePanel(null); }}><ActionIcon type="reset" /><span>{labels?.reset ?? "Fit content"}</span></button>
+              <button type="button" className={isFullscreen ? "is-selected" : ""} aria-pressed={isFullscreen} onClick={() => { onFullscreen(); setMobilePanel(null); }}><ActionIcon type="fullscreen" /><span>{labels?.fullscreen ?? (isFullscreen ? "Exit fullscreen" : "Fullscreen")}</span></button>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

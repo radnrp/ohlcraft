@@ -175,6 +175,7 @@ export const TradingChart = forwardRef<TradingChartHandle, TradingChartProps>(fu
   const [selectedDrawingId, setSelectedDrawingId] = useState<string | null>(null);
   const [draftDrawing, setDraftDrawing] = useState<ChartDrawing | null>(null);
   const [crosshair, setCrosshair] = useState<{ x: number; y: number } | null>(null);
+  const [isInspectingCandle, setIsInspectingCandle] = useState(false);
   const [barSpacing, setBarSpacing] = useState(initialBarSpacing);
   const [rightOffset, setRightOffset] = useState(initialRightOffset);
   const [priceScaleFactor, setPriceScaleFactor] = useState(1);
@@ -345,6 +346,7 @@ export const TradingChart = forwardRef<TradingChartHandle, TradingChartProps>(fu
       pendingDrawingRef.current = null;
       dragRef.current = null;
       setDraftDrawing(null);
+      setIsInspectingCandle(false);
       if (controlledTool === undefined) setInternalTool(tool);
       onToolChange?.(tool);
     },
@@ -353,6 +355,7 @@ export const TradingChart = forwardRef<TradingChartHandle, TradingChartProps>(fu
 
   const setChartType = useCallback(
     (type: ChartType) => {
+      setIsInspectingCandle(false);
       setCurrentChartType(type);
       onChartTypeChange?.(type);
     },
@@ -361,6 +364,7 @@ export const TradingChart = forwardRef<TradingChartHandle, TradingChartProps>(fu
 
   const setTimeframe = useCallback(
     (nextTimeframe: typeof currentTimeframe) => {
+      setIsInspectingCandle(false);
       if (controlledTimeframe === undefined) setInternalTimeframe(nextTimeframe);
       if (size.width > priceScaleWidth) {
         const nextLength = aggregateOHLC(normalized, nextTimeframe).length;
@@ -625,12 +629,14 @@ export const TradingChart = forwardRef<TradingChartHandle, TradingChartProps>(fu
           anchorX,
         };
         dragRef.current = null;
+        setIsInspectingCandle(false);
         emitCrosshair(null);
         event.currentTarget.setPointerCapture(event.pointerId);
         return;
       }
     }
     if (rawPoint.x > result.geometry.plotWidth && rawPoint.y <= result.geometry.plotHeight) {
+      setIsInspectingCandle(false);
       event.currentTarget.setPointerCapture(event.pointerId);
       dragRef.current = {
         mode: "price-scale",
@@ -641,6 +647,7 @@ export const TradingChart = forwardRef<TradingChartHandle, TradingChartProps>(fu
       return;
     }
     if (rawPoint.y > result.geometry.plotHeight && rawPoint.x <= result.geometry.plotWidth) {
+      setIsInspectingCandle(false);
       event.currentTarget.setPointerCapture(event.pointerId);
       dragRef.current = {
         mode: "time-scale",
@@ -651,12 +658,17 @@ export const TradingChart = forwardRef<TradingChartHandle, TradingChartProps>(fu
       return;
     }
     const point = clampToPlot(rawPoint, result.geometry);
-    if (rawPoint.y > result.geometry.plotHeight) return;
+    if (rawPoint.y > result.geometry.plotHeight) {
+      setIsInspectingCandle(false);
+      return;
+    }
     event.currentTarget.setPointerCapture(event.pointerId);
     if (activeTool === "cursor" || activeTool === "crosshair") {
       const hit = drawingsVisible ? hitTestDrawing(point, drawings, displayedData, result.geometry) : null;
       setSelectedDrawingId(hit);
       if (!hit) {
+        setIsInspectingCandle(true);
+        emitCrosshair(point);
         dragRef.current = {
           mode: "pan",
           x: point.x,
@@ -666,6 +678,7 @@ export const TradingChart = forwardRef<TradingChartHandle, TradingChartProps>(fu
           moved: false,
         };
       } else {
+        setIsInspectingCandle(false);
         const drawing = drawings.find((item) => item.id === hit);
         if (drawing && !drawing.locked) {
           const anchors = drawingScreenPoints(drawing, displayedData, result.geometry);
@@ -690,6 +703,7 @@ export const TradingChart = forwardRef<TradingChartHandle, TradingChartProps>(fu
       }
       return;
     }
+    setIsInspectingCandle(false);
     if (pendingDrawingRef.current) {
       const pending = pendingDrawingRef.current;
       const nextPoint = toDrawingPoint(point, result.geometry);
@@ -863,6 +877,8 @@ export const TradingChart = forwardRef<TradingChartHandle, TradingChartProps>(fu
     if (drag?.mode === "edit" && drag.moved) updateDrawings(cloneDrawings(drag.historySnapshot), false);
     pendingDrawingRef.current = null;
     setDraftDrawing(null);
+    setIsInspectingCandle(false);
+    emitCrosshair(null);
     if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
   };
 
@@ -978,9 +994,9 @@ export const TradingChart = forwardRef<TradingChartHandle, TradingChartProps>(fu
   };
 
   const legendCandle = useMemo(() => {
-    if (!crosshair || !renderResultRef.current || !displayedData.length) return displayedData[displayedData.length - 1];
+    if (!isInspectingCandle || !crosshair || !renderResultRef.current || !displayedData.length) return null;
     return displayedData[nearestDataIndex(xToIndex(crosshair.x, renderResultRef.current.geometry), displayedData.length)];
-  }, [crosshair, displayedData]);
+  }, [crosshair, displayedData, isInspectingCandle]);
   const legendIndex = legendCandle ? displayedData.indexOf(legendCandle) : -1;
   const previousLegendCandle = legendIndex > 0 ? displayedData[legendIndex - 1] : undefined;
   const candleChange = legendCandle && previousLegendCandle
@@ -1082,6 +1098,7 @@ export const TradingChart = forwardRef<TradingChartHandle, TradingChartProps>(fu
         onPointerLeave={() => {
           setOverPriceScale(false);
           setOverTimeScale(false);
+          setIsInspectingCandle(false);
           if (!dragRef.current) emitCrosshair(null);
         }}
         onWheel={onWheel}

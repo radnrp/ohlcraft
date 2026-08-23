@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.3 - 2026-08-23
+
+- Replaced the crowded compact toolbar with a touch-friendly four-action dock and accessible panels while retaining every drawing, chart-style, timeframe, and chart action.
+- Collapsed drawing history controls and simplified the compact legend to keep the chart readable on small screens.
+- Hid candle details by default and reveal them only after direct chart interaction, updating them while the user inspects candles.
+- Added mobile-toolbar regression coverage for compact controls, drawing history, and the hidden default legend state.
+
 ## 0.1.2 - 2026-08-22
 
 - Made chart fullscreen consistently fill the host app viewport across Telegram Mini Apps, iPhone, macOS, and desktop browsers.
