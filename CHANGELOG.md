@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.4 - 2026-08-25
+
+- Added prominent GitHub star calls-to-action to the landing page navigation, announcement bar, and footer.
+- Linked the npm package homepage and README to the live GitHub Pages demo and theme studio.
+
 ## 0.1.3 - 2026-08-23
 
 - Replaced the crowded compact toolbar with a touch-friendly four-action dock and accessible panels while retaining every drawing, chart-style, timeframe, and chart action.

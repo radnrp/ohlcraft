@@ -1,6 +1,6 @@
 {
   "name": "ohlcraft",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "A deeply customizable, canvas-based financial chart for React and Next.js.",
   "type": "module",
   "sideEffects": [
@@ -75,7 +75,7 @@
     "type": "git",
     "url": "git+https://github.com/radnrp/ohlcraft.git"
   },
-  "homepage": "https://github.com/radnrp/ohlcraft#readme",
+  "homepage": "https://radnrp.github.io/ohlcraft/",
   "bugs": {
     "url": "https://github.com/radnrp/ohlcraft/issues"
   }

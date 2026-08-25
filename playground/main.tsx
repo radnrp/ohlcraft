@@ -47,7 +47,7 @@ function App() {
 
   return (
     <div className="site-page">
-      <div className="release-bar"><span><i />Version 0.1 is ready</span><a href="#docs">Read the release guide <b>→</b></a></div>
+      <div className="release-bar"><span><i />OHLCraft is open source</span><a href="https://github.com/radnrp/ohlcraft" target="_blank" rel="noreferrer" aria-label="Star OHLCraft on GitHub">Like OHLCraft? Give us a star on GitHub <b>↗</b></a></div>
       <nav className="site-nav" aria-label="Main navigation">
         <a className="site-brand" href="#top" onClick={closeMenu}><span className="brand-mark"><i /><i /><i /></span><span>OHLC<span>raft</span></span></a>
         <div className={`nav-links ${menuOpen ? "is-open" : ""}`}>
@@ -57,7 +57,7 @@ function App() {
           <a href="#performance" onClick={closeMenu}>Performance</a>
         </div>
         <div className="nav-actions">
-          <a className="nav-text-link" href="#docs">API reference</a>
+          <a className="nav-text-link github-link" href="https://github.com/radnrp/ohlcraft" target="_blank" rel="noreferrer" aria-label="Star OHLCraft on GitHub"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2C6.48 2 2 6.58 2 12.23c0 4.52 2.87 8.35 6.84 9.71.5.1.68-.22.68-.49 0-.24-.01-1.05-.01-1.9-2.78.62-3.37-1.21-3.37-1.21-.45-1.18-1.11-1.49-1.11-1.49-.91-.63.07-.62.07-.62 1 .08 1.53 1.06 1.53 1.06.89 1.57 2.34 1.11 2.91.85.09-.67.35-1.11.63-1.37-2.22-.26-4.56-1.14-4.56-5.06 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.28 2.75 1.05A9.3 9.3 0 0 1 12 6.96a9.3 9.3 0 0 1 2.5.35c1.91-1.33 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.93-2.34 4.8-4.57 5.05.36.32.68.94.68 1.9 0 1.37-.01 2.47-.01 2.81 0 .27.18.59.69.49A10.23 10.23 0 0 0 22 12.23C22 6.58 17.52 2 12 2Z" /></svg><span>Star on GitHub</span></a>
           <a className="button button-small button-primary" href="#studio">Open Studio <span>↗</span></a>
           <button type="button" className={`mobile-menu ${menuOpen ? "is-open" : ""}`} onClick={() => setMenuOpen((value) => !value)} aria-label="Toggle navigation" aria-expanded={menuOpen}><i /><i /><i /></button>
         </div>
@@ -110,7 +110,7 @@ function App() {
 
       <footer className="site-footer site-section">
         <div className="footer-brand"><a className="site-brand" href="#top"><span className="brand-mark"><i /><i /><i /></span><span>OHLC<span>raft</span></span></a><p>Craft financial charts your way with React, Next.js, and Canvas.</p></div>
-        <div className="footer-links"><div><strong>Product</strong><a href="#product">Features</a><a href="#studio">Theme Studio</a><a href="#performance">Performance</a></div><div><strong>Developers</strong><a href="#docs">Documentation</a><a href="#docs-props">API reference</a><a href="#docs-theme">Theming</a></div><div><strong>Project</strong><a href="#top">Changelog</a><a href="#docs">License</a><a href="#top">npm package</a></div></div>
+        <div className="footer-links"><div><strong>Product</strong><a href="#product">Features</a><a href="#studio">Theme Studio</a><a href="#performance">Performance</a></div><div><strong>Developers</strong><a href="#docs">Documentation</a><a href="#docs-props">API reference</a><a href="#docs-theme">Theming</a></div><div><strong>Project</strong><a href="https://github.com/radnrp/ohlcraft" target="_blank" rel="noreferrer">GitHub — give us a star</a><a href="#top">Changelog</a><a href="#docs">License</a><a href="#top">npm package</a></div></div>
         <div className="footer-bottom"><span>© 2026 OHLCraft. MIT licensed.</span><span>Craft financial charts your way.</span></div>
       </footer>
     </div>

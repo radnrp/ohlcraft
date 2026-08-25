@@ -2,6 +2,8 @@
 
 > Craft financial charts your way.
 
+[Live demo & theme studio](https://radnrp.github.io/ohlcraft/) · [GitHub](https://github.com/radnrp/ohlcraft)
+
 OHLCraft is a release-ready, canvas-based financial chart for React and Next.js. It is small, responsive, fully typed, SSR-safe, and has no runtime dependency beyond React.
 
 ## Features
