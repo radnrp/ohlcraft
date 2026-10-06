@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.5 - 2026-10-06
+
+- Fixed cursor price and time labels being clipped at the chart boundaries, so the exact cursor price is visible on the right axis.
+- Kept the cursor price badge above the last-price label and fully visible at the top and bottom of the chart.
+- Added regression tests for clipping, overlapping labels, light/dark themes, zoomed and panned scales, and pointer exit.
+
 ## 0.1.4 - 2026-08-25
 
 - Added prominent GitHub star calls-to-action to the landing page navigation, announcement bar, and footer.

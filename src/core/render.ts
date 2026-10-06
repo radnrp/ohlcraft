@@ -14,6 +14,7 @@ import {
   priceToY,
   visibleIndexes,
   xToIndex,
+  yToPrice,
   type ChartGeometry,
 } from "./scales";
 import { compactNumber } from "./format";
@@ -690,15 +691,18 @@ function drawCrosshair(
   ctx.lineTo(geometry.plotWidth, Math.round(point.y) + 0.5);
   ctx.stroke();
   ctx.setLineDash([]);
-  const price = geometry.maxPrice - (point.y / geometry.plotHeight) * (geometry.maxPrice - geometry.minPrice);
+  const price = yToPrice(point.y, geometry);
   ctx.font = `11px ${options.theme.fontFamily}`;
   const priceText = options.formatPrice(price);
+  const priceLabelHeight = Math.min(24, geometry.plotHeight);
+  const priceLabelY = Math.max(0, Math.min(geometry.plotHeight - priceLabelHeight, point.y - priceLabelHeight / 2));
   ctx.fillStyle = crosshair.labelBackground;
-  roundedRect(ctx, geometry.plotWidth + 3, point.y - 12, options.priceScaleWidth - 6, 24, crosshair.labelRadius);
+  roundedRect(ctx, geometry.plotWidth + 3, priceLabelY, options.priceScaleWidth - 6, priceLabelHeight, crosshair.labelRadius);
   ctx.fill();
   ctx.fillStyle = crosshair.labelText;
   ctx.textBaseline = "middle";
-  ctx.fillText(priceText, geometry.plotWidth + 8, point.y);
+  ctx.textAlign = "left";
+  ctx.fillText(priceText, geometry.plotWidth + 8, priceLabelY + priceLabelHeight / 2);
 
   const dataIndex = Math.max(0, Math.min(options.data.length - 1, Math.round(xToIndex(point.x, geometry))));
   const candle = options.data[dataIndex];
@@ -882,7 +886,6 @@ export function renderChart(ctx: CanvasRenderingContext2D, options: RenderOption
     if (drawing.visible !== false) drawOneDrawing(ctx, drawing, options, geometry, drawing.id === options.selectedDrawingId);
   }
   if (options.draftDrawing) drawOneDrawing(ctx, options.draftDrawing, options, geometry, true);
-  if (options.crosshair) drawCrosshair(ctx, options.crosshair, options, geometry);
   ctx.restore();
 
   const lastCandle = options.data[last];
@@ -913,5 +916,7 @@ export function renderChart(ctx: CanvasRenderingContext2D, options: RenderOption
       ctx.fillText(compactNumber(maxVolume, options.locale), 8, plotHeight - plotHeight * options.theme.volume.heightRatio - 8);
     }
   }
+  // Axis labels must escape the plot clip and stay above the last-price label.
+  if (options.crosshair) drawCrosshair(ctx, options.crosshair, options, geometry);
   return { geometry, first, last };
 }
